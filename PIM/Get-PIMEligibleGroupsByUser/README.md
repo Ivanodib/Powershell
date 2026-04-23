@@ -23,15 +23,14 @@ This PowerShell script retrieves **Privileged Identity Management (PIM) Eligible
 - MS Graph Scope:
   - `User.Read.All`
   - `Group.Read.All`
-  - `Directory.Read.All`,
-  - `RoleManagement.Read.Directory`
+  - `Directory.Read.All`
   - `PrivilegedEligibilitySchedule.Read.AzureADGroup`
   - `PrivilegedAccess.Read.AzureADGroup`
 
 
 ## Usage
 
-### Download the script (usefull from cloudshell)
+### Download the script (useful from cloudshell)
 
 
 ``` powershell
