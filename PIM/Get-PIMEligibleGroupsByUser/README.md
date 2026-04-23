@@ -5,12 +5,8 @@ This PowerShell script retrieves **Privileged Identity Management (PIM) Eligible
 
   <br>
 
-## Features  
-
-- Retrieve **PIM eligible/active group membership**
-- Handle Microsoft Graph **API limitations**
-- Export results to **CSV for reporting**
-- Compatible with **Azure Cloud Shell** and PowerShell 7+
+- Retrieve PIM eligible/active group membership
+- Export results to CSV
 
 ## Requirements  
 
