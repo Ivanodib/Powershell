@@ -1,16 +1,14 @@
 # PIM Eligible Discovery Script
 
 ## Overview  
-This PowerShell script retrieves **Privileged Identity Management (PIM) eligible group assignments** for a given Microsoft Entra ID user.
+This PowerShell script retrieves **Privileged Identity Management (PIM) eligible/ group and role assignments** for a given Microsoft Entra ID user.
 
-It collects:
--  **Eligible group assignments (PIM for Groups – Member / Owner)**  
----
 
 ## Features  
 
-- Retrieve **PIM eligible group memberships**
-- Handle Microsoft Graph **API limitations automatically**
+- Retrieve **PIM eligible/active group memberships**
+- Retrieve **PIM eligible/active roles memberships**
+- Handle Microsoft Graph **API limitations**
 - Export results to **CSV for reporting**
 - Compatible with **Azure Cloud Shell** and PowerShell 7+
 
