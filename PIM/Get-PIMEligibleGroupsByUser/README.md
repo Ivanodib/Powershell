@@ -39,7 +39,10 @@ It collects:
 
 ---
 
-## Usage  
+## Usage
+
+### Download the script (usefull from cloudshell)
+`Invoke-WebRequest -Uri "(https://github.com/Ivanodib/Powershell/blob/main/PIM/Get-PIMEligibleGroupsByUser/Get-PIMEligibleGroupsByUser.ps1)" -OutFile "Get-PIMEligibleUserGroups.ps1"`
 
 ### Run the script  
 
