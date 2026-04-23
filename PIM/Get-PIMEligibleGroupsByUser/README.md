@@ -42,9 +42,16 @@ It collects:
 ## Usage
 
 ### Download the script (usefull from cloudshell)
-```Invoke-WebRequest -Uri "(https://github.com/Ivanodib/Powershell/blob/main/PIM/Get-PIMEligibleGroupsByUser/Get-PIMEligibleGroupsByUser.ps1)" -OutFile "Get-PIMEligibleUserGroups.ps1"```
+
+
+``` powershell
+Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Ivanodib/Powershell/main/PIM/Get-PIMEligibleGroupsByUser/Get-PIMEligibleGroupsByUser.ps1" -OutFile "Get-PIMEligibleGroupsByUser.ps1"
+```
+
 
 ### Run the script  
 
-```powershell
+``` powershell
 .\Get-PIMEligibleGroupsByUser.ps1 -UserUPN "user@domain.com" -ExportCsvPath "eligible_groups.csv"
+```
+
