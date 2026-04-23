@@ -18,17 +18,24 @@ It collects:
 
 ## Requirements  
 
-- PowerShell 7 (Azure Cloud Shell recommended)
-- Microsoft Graph PowerShell modules
+- Required Entra roles:
+  - `Global Reader` or   
+  - `Privileged Role Administrator` 
+
+- PowerShell 7+ (Azure Cloud Shell recommended)
+
+- Microsoft Graph PowerShell modules:
+  - `Install-Module Microsoft.Graph.Users`
+  - `Install-Module Microsoft.Graph.Groups`
+  - `Install-Module Microsoft.Graph.Identity.Governance`
+    
+  > **Azure Cloud Shell already includes these modules**
+
 - Required permissions:
   - `User.Read.All`
   - `Group.Read.All`
   - `RoleManagement.Read.Directory`
   - `PrivilegedEligibilitySchedule.Read.AzureADGroup`
-
-- Recommended Entra roles:
-  - Global Reader  
-  - Privileged Role Administrator  
 
 ---
 
