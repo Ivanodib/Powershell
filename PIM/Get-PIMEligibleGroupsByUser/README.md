@@ -55,3 +55,8 @@ Invoke-WebRequest -Uri "https://raw.githubusercontent.com/Ivanodib/Powershell/ma
 .\Get-PIMEligibleGroupsByUser.ps1 -UserUPN "user@domain.com" -ExportCsvPath "eligible_groups.csv"
 ```
 
+- Filter by group name
+``` powershell
+.\Get-PIMEligibleGroupsByUser.ps1 -UserUPN "user@domain.com" -GroupNameContains "PIM" -ExportCsvPath "eligible_groups.csv"
+```
+
