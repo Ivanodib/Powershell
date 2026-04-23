@@ -1,90 +1,116 @@
 param(
-  [Parameter(Mandatory=$true)]
-  [string]$UserUPN,
+    [Parameter(Mandatory=$true)]
+    [string]$UserUPN,
 
-  # Facoltativo: limita ai gruppi role-assignable (più veloce, tipico per GA group)
-  [switch]$RoleAssignableOnly,
-
-  # Facoltativo: filtra per nome gruppo (contiene)
-  [string]$GroupNameContains = "",
-
-  # Facoltativo: export CSV (path locale Cloud Shell)
-  [string]$ExportCsvPath = ""
+    [string]$GroupNameContains = "",
+    [string]$ExportCsvPath = ""
 )
 
-# --- Moduli ---
-Import-Module Microsoft.Graph.Users -ErrorAction Stop
-Import-Module Microsoft.Graph.Groups -ErrorAction Stop
-Import-Module Microsoft.Graph.Identity.Governance -ErrorAction Stop
+# --- Verifica e installa moduli necessari ---
+$requiredModules = @(
+    'Microsoft.Graph.Authentication',
+    'Microsoft.Graph.Users',
+    'Microsoft.Graph.Groups',
+    'Microsoft.Graph.Identity.Governance'
+)
+foreach ($mod in $requiredModules) {
+    if (-not (Get-Module -ListAvailable -Name $mod)) {
+        Write-Host "Installing $mod..." -ForegroundColor Yellow
+        Install-Module $mod -Scope CurrentUser -Force -ErrorAction Stop
+    }
+    Import-Module $mod -ErrorAction Stop
+}
 
-# --- Connect Graph (delegated) ---
-Disconnect-MgGraph -ErrorAction SilentlyContinue
 $Scopes = @(
-  "User.Read.All",
-  "Group.Read.All",
-  "Directory.Read.All",
-  "PrivilegedEligibilitySchedule.Read.AzureADGroup"
+    "User.Read.All",
+    "Group.Read.All",
+    "Directory.Read.All",
+    "PrivilegedEligibilitySchedule.Read.AzureADGroup",
+    "PrivilegedAccess.Read.AzureADGroup"
 )
-Connect-MgGraph -Scopes $Scopes -NoWelcome
+
+$ctx = Get-MgContext
+$missingScopes = $Scopes | Where-Object { $_ -notin $ctx.Scopes }
+if (-not $ctx -or $missingScopes) {
+    Connect-MgGraph -Scopes $Scopes -NoWelcome
+}
 
 # --- Resolve user ---
 $user = Get-MgUser -UserId $UserUPN -Property Id,DisplayName,UserPrincipalName
 if (-not $user) { throw "User not found: $UserUPN" }
-
 Write-Host "Target user: $($user.DisplayName) <$($user.UserPrincipalName)>  Id=$($user.Id)" -ForegroundColor Cyan
 
-# --- Candidate groups ---
-# Nota: non esiste una “lista diretta” di gruppi PIM-enabled per un altro utente senza iterare.
-# Riduciamo la superficie: role-assignable oppure securityEnabled.
-$groupFilter = $RoleAssignableOnly.IsPresent ? "isAssignableToRole eq true" : "securityEnabled eq true"
+# --- Gruppi PIM-enabled ---
+Write-Host "Discovering PIM-enabled groups..." -ForegroundColor Yellow
+$pimGroups = Get-MgGroup -All -Filter "isAssignableToRole eq true" -Property Id,DisplayName
 
-$groups = Get-MgGroup -All -Filter $groupFilter -Property Id,DisplayName,SecurityEnabled,IsAssignableToRole
-
-if ($GroupNameContains -and $GroupNameContains.Trim().Length -gt 0) {
-  $groups = $groups | Where-Object { $_.DisplayName -like "*$GroupNameContains*" }
+if ($GroupNameContains.Trim().Length -gt 0) {
+    $pimGroups = $pimGroups | Where-Object { $_.DisplayName -like "*$GroupNameContains*" }
 }
+Write-Host "PIM-enabled groups found: $($pimGroups.Count)" -ForegroundColor Yellow
 
-Write-Host "Candidate groups: $($groups.Count) (filter: $groupFilter, nameContains: '$GroupNameContains')" -ForegroundColor Yellow
-
-# --- Iterate groups and query eligibilityScheduleInstances scoped by (principalId AND groupId) ---
-# Questo evita il 403 “principalId-only” su other user. [1](https://learn.microsoft.com/en-us/answers/questions/5826484/unable-to-get-eligible-groups-for-user-accounts-wh)[2](https://learn.microsoft.com/en-us/graph/api/privilegedaccessgroup-list-eligibilityschedules?view=graph-rest-1.0)
-$results = New-Object System.Collections.Generic.List[Object]
+# --- Itera gruppi ---
+$results = [System.Collections.Generic.List[Object]]::new()
+$total = $pimGroups.Count
 $i = 0
 
-foreach ($g in $groups) {
-  $i++
-  if (($i % 50) -eq 0) { Write-Host "Progress: $i / $($groups.Count) ..." -ForegroundColor DarkGray }
+foreach ($g in $pimGroups) {
+    $i++
+    Write-Host "[$i/$total] Checking group $($g.DisplayName) ..." -ForegroundColor Yellow
 
-  try {
-    $elig = Get-MgIdentityGovernancePrivilegedAccessGroupEligibilityScheduleInstance `
-      -Filter "principalId eq '$($user.Id)' and groupId eq '$($g.Id)'" `
-      -ExpandProperty group `
-      -ErrorAction Stop
+    $f = "principalId eq '$($user.Id)' and groupId eq '$($g.Id)'"
 
-    foreach ($e in $elig) {
-      $results.Add([pscustomobject]@{
-        UserUPN        = $user.UserPrincipalName
-        GroupDisplayName = $g.DisplayName
-        GroupId        = $g.Id
-        AccessId       = $e.AccessId      # "member" / "owner"
-        StartDateTime  = $e.StartDateTime
-        EndDateTime    = $e.EndDateTime
-        Status         = $e.Status
-      })
+    # 1) Eligible
+    try {
+        $eligs = Get-MgIdentityGovernancePrivilegedAccessGroupEligibilityScheduleInstance -Filter $f -All -ErrorAction Stop
+        foreach ($e in $eligs) {
+            if ($e.AccessId -ne 'member') { continue }
+            Write-Host "  -> Eligible: $($g.DisplayName)" -ForegroundColor Green
+            $results.Add([pscustomobject]@{
+                UserUPN          = $user.UserPrincipalName
+                GroupDisplayName = $g.DisplayName
+                GroupId          = $g.Id
+                AssignmentType   = 'Eligible'
+                StartDateTime    = $e.StartDateTime
+                EndDateTime      = $e.EndDateTime
+            })
+        }
+    } catch {
+        Write-Warning "  [Eligible] Error on $($g.DisplayName): $_"
     }
-  }
-  catch {
-    # Molti gruppi non sono PIM-enabled -> zero results / o errori; li ignoriamo e continuiamo.
-    continue
-  }
+
+    # 2) Active
+    try {
+        $actives = Get-MgIdentityGovernancePrivilegedAccessGroupAssignmentScheduleInstance -Filter $f -All -ErrorAction Stop
+        foreach ($a in $actives) {
+            if ($a.AccessId -ne 'member') { continue }
+            Write-Host "  -> Active: $($g.DisplayName)" -ForegroundColor Green
+            $results.Add([pscustomobject]@{
+                UserUPN          = $user.UserPrincipalName
+                GroupDisplayName = $g.DisplayName
+                GroupId          = $g.Id
+                AssignmentType   = 'Active'
+                StartDateTime    = $a.StartDateTime
+                EndDateTime      = $a.EndDateTime
+            })
+        }
+    } catch {
+        Write-Warning "  [Active] Error on $($g.DisplayName): $_"
+    }
 }
 
 # --- Output ---
-Write-Host "`nEligible groups found: $($results.Count)" -ForegroundColor Green
-$results | Sort-Object GroupDisplayName, AccessId | Format-Table -AutoSize
+Write-Host "`nPIM group memberships found: $($results.Count)" -ForegroundColor Green
+$results | Sort-Object GroupDisplayName, AssignmentType | Format-Table -AutoSize
 
-# --- Export (opzionale) ---
-if ($ExportCsvPath -and $ExportCsvPath.Trim().Length -gt 0) {
-  $results | Export-Csv -NoTypeInformation -Encoding UTF8 -Path $ExportCsvPath
-  Write-Host "Exported to: $ExportCsvPath" -ForegroundColor Green
+# --- Export ---
+if ($ExportCsvPath.Trim().Length -gt 0) {
+    try {
+        $results | Export-Csv -NoTypeInformation -Encoding UTF8 -Path $ExportCsvPath -ErrorAction Stop
+        Write-Host "Exported to: $ExportCsvPath" -ForegroundColor Green
+    } catch {
+        Write-Warning "Export failed: $_"
+    }
+} else {
+    Write-Host "No export path specified (-ExportCsvPath). Skipping CSV export." -ForegroundColor DarkGray
 }
