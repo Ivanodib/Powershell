@@ -1,7 +1,7 @@
 # PIM Eligible Discovery Script
 
 ## Overview  
-This PowerShell script retrieves **Privileged Identity Management (PIM) eligible assignments** for a given Microsoft Entra ID user.
+This PowerShell script retrieves **Privileged Identity Management (PIM) eligible group assignments** for a given Microsoft Entra ID user.
 
 It collects:
 -  **Eligible group assignments (PIM for Groups – Member / Owner)**  
