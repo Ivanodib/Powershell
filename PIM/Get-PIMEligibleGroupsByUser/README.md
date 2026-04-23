@@ -1,41 +1,33 @@
 # PIM Discovery Script
 
 ## Overview  
-This PowerShell script retrieves **Privileged Identity Management (PIM) eligible/ group and role assignments** for a given Microsoft Entra ID user.
+This PowerShell script retrieves **Privileged Identity Management (PIM) Eligible/Active group assignments** for a given Entra ID user.
 
+  <br>
 
 ## Features  
 
-- Retrieve **PIM eligible/active group memberships**
-- Retrieve **PIM eligible/active roles memberships**
+- Retrieve **PIM eligible/active group membership**
 - Handle Microsoft Graph **API limitations**
 - Export results to **CSV for reporting**
 - Compatible with **Azure Cloud Shell** and PowerShell 7+
 
----
-
 ## Requirements  
 
-- Required Entra roles:
+- Entra ID roles:
   - `Global Reader` or   
-  - `Privileged Role Administrator` 
+  - `User Administrator` **and** `Privileged Role Administrator` 
 
 - PowerShell 7+ (Azure Cloud Shell recommended)
 
-- Microsoft Graph PowerShell modules:
-  - `Install-Module Microsoft.Graph.Users`
-  - `Install-Module Microsoft.Graph.Groups`
-  - `Install-Module Microsoft.Graph.Identity.Governance`
-    
-  > **Azure Cloud Shell already includes these modules**
-
-- Required permissions:
+- MS Graph Scope:
   - `User.Read.All`
   - `Group.Read.All`
+  - `Directory.Read.All`,
   - `RoleManagement.Read.Directory`
   - `PrivilegedEligibilitySchedule.Read.AzureADGroup`
+  - `PrivilegedAccess.Read.AzureADGroup`
 
----
 
 ## Usage
 
