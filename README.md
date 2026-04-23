@@ -4,8 +4,8 @@
 This PowerShell script retrieves **Privileged Identity Management (PIM) eligible assignments** for a given Microsoft Entra ID user.
 
 It collects:
-- ✅ **Eligible directory roles (PIM roles)**  
-- ✅ **Eligible group assignments (PIM for Groups – Member / Owner)**  
+-  **Eligible directory roles (PIM roles)**  
+-  **Eligible group assignments (PIM for Groups – Member / Owner)**  
 
 The script is designed for **security operations, audit, and compliance use cases**, where it is necessary to identify all potential privileged access assigned to a user.
 
