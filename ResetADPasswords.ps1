@@ -9,9 +9,25 @@ if (-not $File) {
 }
 
 function New-RandomPassword {
-    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%'
-    $password = -join ((1..12) | ForEach-Object { $chars | Get-Random })
-    return $password
+    $lower   = 'abcdefghijklmnopqrstuvwxyz'
+    $upper   = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ'
+    $digits  = '0123456789'
+    $special = '!@#$%*-_'
+    $all     = ($lower + $upper + $digits + $special).ToCharArray()
+
+    # garantisce complessità minima
+    $pwd = @(
+        ($lower.ToCharArray()   | Get-Random -Count 1)
+        ($upper.ToCharArray()   | Get-Random -Count 1)
+        ($digits.ToCharArray()  | Get-Random -Count 1)
+        ($special.ToCharArray() | Get-Random -Count 1)
+    )
+
+    # completa fino a 12 caratteri
+    $pwd += (1..8 | ForEach-Object { $all | Get-Random })
+
+    # shuffle finale
+    return (-join ($pwd | Get-Random -Count $pwd.Count))
 }
 
 $Users = Import-Csv -Path $File
