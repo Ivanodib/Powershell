@@ -4,33 +4,32 @@ param (
 
 Import-Module ActiveDirectory
 
-# Se non passi -File → chiedi input
 if (-not $File) {
     $File = Read-Host "Inserisci percorso file CSV"
 }
 
-# Funzione password random
 function New-RandomPassword {
-    return ([System.Web.Security.Membership]::GeneratePassword(12,2))
+    $chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789!@#$%'
+    $password = -join ((1..12) | ForEach-Object { $chars | Get-Random })
+    return $password
 }
 
-# Import CSV
 $Users = Import-Csv -Path $File
 
 foreach ($user in $Users) {
     $upn = $user.UPN.Trim()
-
     if ($upn) {
         try {
-            $plainPassword = New-RandomPassword
-            $securePassword = ConvertTo-SecureString $plainPassword -AsPlainText -Force
+            $pwd = New-RandomPassword
+            $sec = ConvertTo-SecureString $pwd -AsPlainText -Force
 
-            Set-ADAccountPassword -Identity $upn -NewPassword $securePassword -Reset
+            Set-ADAccountPassword -Identity $upn -NewPassword $sec -Reset
 
-            Write-Host "[OK] $upn | password resetted" -ForegroundColor Green
+            Write-Host "[OK] $upn | password reset" -ForegroundColor Green
         }
         catch {
             Write-Host "[ERR] $upn - $_" -ForegroundColor Red
         }
     }
 }
+``
